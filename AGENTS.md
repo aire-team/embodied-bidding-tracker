@@ -4,9 +4,9 @@
 
 ## 项目概述
 
-具身智能行业招投标数据查询工具 —— 基于浏览器自动化技术（Puppeteer）批量查询企业在天眼查平台的招投标/中标公示信息，输出结构化 CSV 报表。
+**具身智能行业招投标数据查询工具** —— 基于浏览器自动化技术（Puppeteer）批量查询企业在天眼查平台的招投标/中标公示信息，输出结构化 CSV 报表。
 
-本项目是一个 Node.js CLI 工具，通过 Chrome DevTools Protocol (CDP) 连接已运行的 Chrome 浏览器实例，模拟人工操作完成数据爬取。
+**v2.0 更新**: 已重构为符合 Agent Skill 标准的统一 CLI 架构。
 
 ## 技术栈
 
@@ -21,182 +21,131 @@
 
 ```
 embodied-bidding-tracker/
+├── SKILL.md                           # Skill 定义文件（主要参考）
 ├── AGENTS.md                          # 本文件：AI 助手指南
-├── README.md                          # 用户文档（中文）
-├── SKILL.md                           # AI Skill 定义（Claude Code 自动加载）
-├── .gitignore                         # Git 忽略：node_modules/
+├── README.md                          # 用户文档
 ├── assets/
-│   └── 具身智能中游企业数据库.md        # 默认企业名单（Markdown 表格格式）
+│   └── 具身智能中游企业数据库.md        # 默认企业名单
 ├── scripts/                           # 主代码目录
-│   ├── package.json                   # npm 依赖与脚本定义
-│   ├── package-lock.json              # 锁定依赖版本
-│   ├── settings.json                  # 浏览器与采集配置
-│   ├── browser.js                     # Chrome 连接管理与工具函数
-│   ├── step1_search_companies.js      # Step 1：企业搜索确认
-│   ├── step2_download_bidding.js      # Step 2：招投标记录下载
+│   ├── cli.js                         # ⭐ 统一 CLI 入口
+│   ├── config.js                      # ⭐ 统一配置管理
+│   ├── browser.js                     # Chrome 连接管理
+│   ├── step1_search_companies.js      # (兼容) 企业搜索确认
+│   ├── step2_download_bidding.js      # (兼容) 招投标记录下载
+│   ├── download_bidding.js            # (兼容) 交互式单企业采集
 │   ├── modules/                       # 业务逻辑模块
-│   │   ├── parseCompanyList.js        # MD 企业名单解析（含海外企业过滤）
-│   │   ├── companySearch.js           # 天眼查企业搜索（含安全验证检测）
-│   │   └── biddingDownload.js         # 招投标记录抓取与筛选
+│   │   ├── parseCompanyList.js        # MD 企业名单解析
+│   │   ├── companySearch.js           # 天眼查企业搜索
+│   │   └── biddingDownload.js         # 招投标记录下载
 │   └── utils/                         # 工具函数
-│       ├── antiCrawl.js               # 反爬虫检测与安全验证处理
 │       ├── excel.js                   # CSV/Excel 读写
 │       ├── logger.js                  # Winston 日志配置
-│       └── retry.js                   # 重试机制与用户操作等待
-└── data/                              # 运行时输出（自动创建，git 忽略）
-    ├── company_list.csv               # Step 1 输出：企业搜索确认结果
-    ├── bidding_records.csv            # Step 2 输出：招投标记录明细
-    ├── step2_progress.json            # 断点续传进度
-    └── tool.log                       # 运行日志
+│       └── retry.js                   # 重试机制
+└── data/                              # 运行时输出
+    ├── company_list.csv               # 企业搜索确认结果
+    ├── bidding_records.csv            # 招投标记录明细
+    └── step2_progress.json            # 断点续传进度
 ```
 
 ## 核心架构
 
-### 两阶段处理流程
+### 统一 CLI 入口 (cli.js)
+
+v2.0 引入统一 CLI，取代分散的脚本文件：
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  企业名单 MD    │ ──▶ │  Step 1: 搜索    │ ──▶ │ company_list.csv│
-│ (名称+领域+城市)│     │  (确认企业全称)  │     │ (名称+链接+状态)│
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                                                          │
-                                                          ▼
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ bidding_records │ ◀── │  Step 2: 下载    │ ◀── │  筛选条件       │
-│    .csv         │     │ (招投标明细)     │     │(日期+金额门槛)  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+node cli.js <command> [options]
+
+Commands:
+  status    环境状态检查
+  search    企业搜索确认
+  download  批量下载招投标记录
+  query     交互式单企业查询
+  help      显示帮助信息
 ```
 
-### 浏览器连接模式
+### 配置管理 (config.js)
 
-本项目采用**外部 Chrome 连接模式**（非自动启动）：
-
-1. 用户需手动启动 Chrome 远程调试模式（端口 9222）
-2. 用户在浏览器中手动登录天眼查
-3. 脚本通过 CDP 连接已运行的 Chrome 实例
-4. 此设计降低被检测为爬虫的风险
+集中管理所有配置项：
 
 ```javascript
-// browser.js 核心逻辑
-await puppeteer.connect({
-  browserURL: 'http://127.0.0.1:9222',
-  defaultViewport: null,
-});
+import { 
+  PATHS,           // 路径配置
+  BROWSER_CONFIG,  // 浏览器配置
+  SEARCH_CONFIG,   // 搜索配置
+  BIDDING_CONFIG,  // 招投标配置
+  DateUtils,       // 日期工具
+  EnvCheck,        // 环境检查
+} from './config.js';
 ```
 
-### 安全验证处理机制
+### 跨平台支持
 
-天眼查平台有多层反爬机制，本项目通过 `antiCrawl.js` 处理：
+| 平台 | Chrome 路径 |
+|------|------------|
+| macOS | `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` |
+| Windows | `C:\Program Files\Google\Chrome\Application\chrome.exe` |
+| Linux | `google-chrome` |
 
-- **URL 跳转检测**：检测是否被重定向到登录/验证页面
-- **DOM 元素检测**：检测登录弹窗、验证码、滑块等元素
-- **文本特征检测**：检测页面提示文本（如"请登录后查看"）
-- **人工介入等待**：触发安全验证时暂停脚本，等待用户手动完成验证（最多 5 分钟）
+## 快速开始
 
-## 配置说明
-
-### settings.json
-
-```json
-{
-  "browser": {
-    "debugPort": 9222,          // Chrome 远程调试端口
-    "defaultTimeout": 30000     // 默认超时（毫秒）
-  },
-  "search": {
-    "delayMin": 3000,           // 企业搜索间隔最小值（毫秒）
-    "delayMax": 6000,           // 企业搜索间隔最大值（毫秒）
-    "maxRetries": 3             // 最大重试次数
-  },
-  "bidding": {
-    "year": 2026,               // 默认年份
-    "minAmountWan": 20,         // 默认金额门槛（万元）
-    "maxPages": 50,             // 最大翻页数
-    "delayMin": 2000,           // 翻页间隔最小值（毫秒）
-    "delayMax": 5000            // 翻页间隔最大值（毫秒）
-  },
-  "overseas_keywords": [        // 海外/港澳台城市关键词
-    "美国", "英国", "德国", "香港", ...
-  ]
-}
-```
-
-## 构建与运行命令
-
-### 前置条件
-
-```bash
-# 1. 确保 Node.js >= 18
-node --version
-
-# 2. 安装依赖
-cd scripts && npm install
-
-# 3. 启动 Chrome 远程调试（macOS 示例）
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-  --remote-debugging-port=9222 \
-  --user-data-dir=/tmp/chrome_debug_profile
-
-# 4. 在 Chrome 中访问 https://www.tianyancha.com 并登录
-```
-
-### 运行命令
+### 1. 环境检查
 
 ```bash
 cd scripts
+node cli.js status
+```
 
-# Step 1: 企业搜索确认（使用默认名单）
-npm run step1
-# 或
-node step1_search_companies.js
+### 2. 企业搜索确认
 
-# Step 1: 使用自定义企业名单
-node step1_search_companies.js --company-file /path/to/custom_list.md
+```bash
+# 使用默认企业名单
+node cli.js search
 
-# Step 2: 招投标记录下载（默认参数）
-npm run step2
-# 或
-node step2_download_bidding.js
+# 使用自定义名单
+node cli.js search --company-file /path/to/custom.md
+```
 
-# Step 2: 指定参数
-node step2_download_bidding.js \
+### 3. 下载招投标记录
+
+```bash
+# 本季度数据
+node cli.js download
+
+# 指定参数
+node cli.js download \
   --start-date 2026-01-01 \
   --end-date 2026-03-31 \
   --min-amount 100
 ```
 
-### CLI 参数说明
+### 4. 交互式单企业查询
 
-**Step 1 参数：**
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--company-file` | 自定义企业名单 MD 文件路径 | `assets/具身智能中游企业数据库.md` |
+```bash
+# 交互式输入
+node cli.js query
 
-**Step 2 参数：**
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--start-date` | 开始日期 (YYYY-MM-DD) | `2026-01-01` |
-| `--end-date` | 结束日期 (YYYY-MM-DD) | `2026-03-31` |
-| `--min-amount` | 最低金额（万元），0=无门槛 | `0` |
+# 直接指定
+node cli.js query "宇树科技"
+```
 
 ## 代码规范
 
 ### 模块系统
 
-- 使用 ES Modules (`"type": "module"` in package.json)
-- 文件扩展名使用 `.js`，导入时需带扩展名
+使用 ES Modules (`"type": "module"` in package.json)：
 
 ```javascript
-// 正确
+// ✅ 正确
 import { logger } from './utils/logger.js';
 
-// 错误
+// ❌ 错误
 import { logger } from './utils/logger';  // 缺少 .js 扩展名
 ```
 
 ### 目录引用
 
-使用 `fileURLToPath` 和 `import.meta.url` 处理 `__dirname`：
+使用 `fileURLToPath` 和 `import.meta.url`：
 
 ```javascript
 import path from 'path';
@@ -206,9 +155,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 ```
 
+### 配置使用
+
+优先使用统一配置：
+
+```javascript
+import { PATHS, BROWSER_CONFIG, DateUtils } from './config.js';
+
+// 使用预定义路径
+const dataDir = PATHS.dataDir;
+
+// 使用日期工具
+const { startDate, endDate } = DateUtils.getQuarterRange(2026, 1);
+```
+
 ### 日志规范
 
-所有输出通过 `utils/logger.js`：
+使用 `utils/logger.js`：
 
 ```javascript
 import { logger } from './utils/logger.js';
@@ -218,45 +181,28 @@ logger.warn('警告日志');
 logger.error('错误日志');
 ```
 
-日志同时输出到：
-- 控制台（带颜色）
-- `data/tool.log`（文件，最大 5MB，保留 3 个历史文件）
-
-### 延迟/等待函数
+### 延迟/等待
 
 使用 `browser.js` 提供的随机延迟：
 
 ```javascript
 import { delay } from './browser.js';
 
-// 随机延迟 2000-5000 毫秒
-await delay(2000, 5000);
-```
-
-### 重试机制
-
-使用 `utils/retry.js`：
-
-```javascript
-import { withRetry } from './utils/retry.js';
-
-await withRetry(async () => {
-  // 可能失败的操作
-}, { maxRetries: 3, delayMs: 5000, label: '操作描述' });
+await delay(3000, 6000);  // 随机延迟 3-6 秒
 ```
 
 ### 安全验证检查
 
-所有页面导航/操作后必须检查安全验证：
+所有页面操作后必须检查：
 
 ```javascript
 import { handleSecurityCheck } from './utils/antiCrawl.js';
 
-await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 const passed = await handleSecurityCheck(page, {
   context: '操作描述',
   expectedUrlPattern: '/expected-path',
 });
+
 if (!passed) {
   throw new Error('安全验证等待超时');
 }
@@ -266,17 +212,16 @@ if (!passed) {
 
 ### 企业名单 MD 格式
 
-Markdown 表格，必须包含以下列：
+必须包含以下列：
 
 ```markdown
-| 索引 | 企业名称 | 所属领域 | 产品名称 | 城市 |
-|------|----------|----------|----------|------|
-| 1 | 宇树科技 | 本体 | Unitree H1 | 杭州 |
-| 2 | 优必选 | 本体 | Walker S2 | 深圳 |
+| 索引 | 企业名称 | 所属领域 | 产品名称 | 城市 | 天眼查企业全称 | 天眼查链接 |
+|------|----------|----------|----------|------|----------------|------------|
+| 1 | 宇树科技 | 本体 | Unitree H1 | 杭州 | 宇树科技股份有限公司 | https://... |
 ```
 
-- 海外/港澳台企业（城市含 `overseas_keywords` 关键词）自动跳过
-- 字段不足的行会被忽略
+- 海外/港澳台企业自动跳过（城市关键词匹配）
+- 天眼查信息可为空，会被自动补全
 
 ## 输出数据格式
 
@@ -292,7 +237,7 @@ Markdown 表格，必须包含以下列：
 | 所属领域 | 原 MD 数据 |
 | 产品名称 | 原 MD 数据 |
 | 城市 | 原 MD 数据 |
-| 搜索状态 | 已确认/未找到/失败:xxx/海外企业-跳过 |
+| 搜索状态 | 已确认/未找到/失败/海外企业-跳过 |
 
 ### bidding_records.csv
 
@@ -308,34 +253,42 @@ Markdown 表格，必须包含以下列：
 
 ## 测试策略
 
-本项目无自动化测试套件，采用**手动集成测试**：
+采用手动集成测试：
 
-1. **Step 1 测试**：运行 `npm run step1`，验证：
-   - 能正确解析 MD 文件
-   - 能连接到 Chrome
-   - 能正确处理安全验证
-   - 输出 CSV 格式正确
+1. **环境检查**: `node cli.js status`
+   - 验证 Node.js 版本
+   - 验证 Chrome 连接
+   - 验证 npm 依赖
 
-2. **Step 2 测试**：运行 `npm run step2`，验证：
-   - 能正确读取 Step 1 输出
-   - 能正确应用筛选条件
-   - 断点续传功能正常（中断后重新运行）
-   - 数据去重功能正常
+2. **企业搜索**: `node cli.js search`
+   - 验证 MD 文件解析
+   - 验证天眼查搜索
+   - 验证 CSV 输出
+
+3. **招投标下载**: `node cli.js download`
+   - 验证筛选条件
+   - 验证断点续传
+   - 验证数据去重
+
+4. **单企业查询**: `node cli.js query "测试企业"`
+   - 验证模糊匹配
+   - 验证交互流程
+   - 验证结果保存
 
 ## 调试技巧
 
 ### 查看 Chrome DevTools
 
-1. 在浏览器访问 `http://127.0.0.1:9222`
+1. 访问 `http://127.0.0.1:9222`
 2. 点击页面链接打开 DevTools
 
 ### 开启 Puppeteer 调试
 
 ```bash
-DEBUG=puppeteer:* node step1_search_companies.js
+DEBUG=puppeteer:* node cli.js download
 ```
 
-### 检查日志
+### 查看日志
 
 ```bash
 tail -f data/tool.log
@@ -348,31 +301,34 @@ tail -f data/tool.log
 ```
 未检测到 Chrome 远程调试服务
 ```
-**解决**：按 README 说明手动启动 Chrome 远程调试模式。
+
+**解决**: 按 SKILL.md 说明手动启动 Chrome 远程调试模式。
 
 ### 安全验证频繁触发
 
-**解决**：
-1. 降低查询频率（增大 `delayMin`/`delayMax`）
-2. 分批次查询（单次不超过 200 家企业）
+**解决**:
+1. 降低查询频率（增大 delay）
+2. 分批次查询（单次不超过 200 家）
 3. 暂停 30 分钟后继续
 
-### Step 2 中断后如何恢复
+### 脚本中断后如何恢复
 
-直接重新运行 Step 2，会自动跳过已处理的企业（进度保存在 `step2_progress.json`）。
+直接重新运行，会自动跳过已处理的企业（进度保存在 `step2_progress.json`）。
 
 ## AI Coding 规则
 
-1. **工作区内使用中文**：所有代码注释、文档、提交信息、变量命名等均使用中文
-2. **Git 操作需人工确认**：任何 `git push` 操作前必须获得用户明确确认后再执行
+1. **工作区内使用中文**: 所有代码注释、文档、变量命名等均使用中文
+2. **Git 操作需人工确认**: 任何 `git push` 操作前必须获得用户明确确认
+3. **优先使用统一配置**: 新增配置项应放入 `config.js`
+4. **保持向后兼容**: 旧脚本（step1/step2）应保持兼容或调用新 CLI
 
 ## 开发注意事项
 
-1. **不要自动启动 Chrome**：必须使用外部 Chrome 连接模式，避免被检测为爬虫
-2. **必须处理安全验证**：所有页面操作后都要调用 `handleSecurityCheck`
-3. **保持随机延迟**：请求间隔使用随机值，模拟人工操作
-4. **注意数据去重**：同一标题+日期的记录只保留一条
-5. **避免硬编码路径**：使用 `path.join` 和 `projectRoot` 处理跨平台路径
+1. **不要自动启动 Chrome**: 必须使用外部 Chrome 连接模式
+2. **必须处理安全验证**: 所有页面操作后调用 `handleSecurityCheck`
+3. **保持随机延迟**: 请求间隔使用随机值，模拟人工操作
+4. **注意数据去重**: 同一标题+日期的记录只保留一条
+5. **避免硬编码路径**: 使用 `PATHS` 配置处理跨平台路径
 
 ## 依赖更新
 

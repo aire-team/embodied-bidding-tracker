@@ -1,17 +1,35 @@
 {
-  "name": "tianyancha-bidding-tool",
-  "version": "1.0.4",
-  "description": "具身智能行业招投标核查工具 - 具身智能产业数据库",
+  "name": "embodied-bidding-tracker",
+  "version": "2.0.0",
+  "description": "具身智能行业招投标数据查询工具 - Agent Skill 版本",
   "type": "module",
-  "scripts": {
-    "step1": "node step1_search_companies.js",
-    "step2": "node step2_download_bidding.js"
+  "bin": {
+    "bidding-tracker": "./cli.js"
   },
+  "scripts": {
+    "start": "node cli.js",
+    "status": "node cli.js status",
+    "search": "node cli.js search",
+    "download": "node cli.js download",
+    "query": "node cli.js query"
+  },
+  "keywords": [
+    "tianyancha",
+    "bidding",
+    "procurement",
+    "agent-skill",
+    "puppeteer"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "puppeteer-core": "^24.0.0",
-    "xlsx": "^0.18.5",
-    "csv-writer": "^1.6.0",
     "csv-parse": "^5.6.0",
-    "winston": "^3.17.0"
+    "csv-writer": "^1.6.0",
+    "puppeteer-core": "^24.0.0",
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

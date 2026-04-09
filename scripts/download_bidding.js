@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 /**
- * Step 1: 企业名称搜索 (兼容模式)
+ * 交互式企业招投标数据采集 (兼容模式)
  * 
  * ⚠️ 此脚本为兼容保留，新代码请直接使用 cli.js
  * 
  * 用法:
- *   npm run step1
- *   node step1_search_companies.js [-- --company-file <path>]
+ *   node download_bidding.js [企业名称]
  * 
  * 推荐使用新 CLI:
- *   node cli.js search [--company-file <path>]
+ *   node cli.js query [企业名称]
  */
 
 import { spawn } from 'child_process';
@@ -18,19 +17,13 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-console.log('ℹ️  Step 1 正在使用新的 CLI 入口...\n');
+console.log('ℹ️  正在使用新的 CLI 入口...\n');
 
 const args = process.argv.slice(2);
 const cliPath = path.join(__dirname, 'cli.js');
 
-// 转换旧参数为新格式
-const newArgs = ['search'];
-
-// 处理 --company-file 参数
-const companyFileIdx = args.findIndex(arg => arg === '--company-file');
-if (companyFileIdx !== -1 && args[companyFileIdx + 1]) {
-  newArgs.push('--company-file', args[companyFileIdx + 1]);
-}
+// 转换为新格式
+const newArgs = ['query', ...args];
 
 const child = spawn('node', [cliPath, ...newArgs], {
   stdio: 'inherit',

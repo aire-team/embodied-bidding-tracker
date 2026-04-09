@@ -1,2 +1,5 @@
 node_modules/
 scripts/node_modules/
+.idea/
+data/
+.DS_Store
