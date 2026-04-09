@@ -4,7 +4,7 @@ import { withRetry } from '../utils/retry.js';
 import { handleSecurityCheck } from '../utils/antiCrawl.js';
 
 /**
- * 使用天眼查招投标搜索页面获取记录
+ * 使用具身智能行业招投标搜索页面获取记录
  * 
  * 流程:
  * 1. 访问 https://www.tianyancha.com/s/toubiao

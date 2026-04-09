@@ -1,6 +1,6 @@
 ---
 name: embodied-bidding-tracker
-description: 天眼查招投标数据查询工具 - 基于浏览器自动化技术批量查询企业招投标/中标公示信息，导出结构化 CSV 报表。支持 macOS 和 Windows 跨平台运行。
+description: 具身智能行业招投标数据查询工具 - 基于浏览器自动化技术批量查询企业招投标/中标公示信息，导出结构化 CSV 报表。支持 macOS 和 Windows 跨平台运行。
 ---
 
 ## Skill 目录结构

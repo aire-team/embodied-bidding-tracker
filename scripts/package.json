@@ -1,7 +1,7 @@
 {
   "name": "tianyancha-bidding-tool",
   "version": "1.0.4",
-  "description": "天眼查招投标核查工具 - 具身智能产业数据库",
+  "description": "具身智能行业招投标核查工具 - 具身智能产业数据库",
   "type": "module",
   "scripts": {
     "step1": "node step1_search_companies.js",
