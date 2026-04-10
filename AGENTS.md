@@ -30,9 +30,6 @@ embodied-bidding-tracker/
 │   ├── cli.js                         # ⭐ 统一 CLI 入口
 │   ├── config.js                      # ⭐ 统一配置管理
 │   ├── browser.js                     # Chrome 连接管理
-│   ├── step1_search_companies.js      # (兼容) 企业搜索确认
-│   ├── step2_download_bidding.js      # (兼容) 招投标记录下载
-│   ├── download_bidding.js            # (兼容) 交互式单企业采集
 │   ├── modules/                       # 业务逻辑模块
 │   │   ├── parseCompanyList.js        # MD 企业名单解析
 │   │   ├── companySearch.js           # 天眼查企业搜索
@@ -320,7 +317,7 @@ tail -f data/tool.log
 1. **工作区内使用中文**: 所有代码注释、文档、变量命名等均使用中文
 2. **Git 操作需人工确认**: 任何 `git push` 操作前必须获得用户明确确认
 3. **优先使用统一配置**: 新增配置项应放入 `config.js`
-4. **保持向后兼容**: 旧脚本（step1/step2）应保持兼容或调用新 CLI
+4. **统一入口**: 所有操作通过 `cli.js` 入口执行
 
 ## 开发注意事项
 

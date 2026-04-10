@@ -18,9 +18,6 @@ embodied-bidding-tracker/
 │   ├── config.js                     # ⭐ 统一配置管理
 │   ├── browser.js                    # Puppeteer 浏览器连接
 │   ├── package.json                  # npm 依赖
-│   ├── step1_search_companies.js     # (兼容) 企业搜索确认
-│   ├── step2_download_bidding.js     # (兼容) 招投标下载
-│   ├── download_bidding.js           # (兼容) 交互式单企业采集
 │   ├── modules/
 │   │   ├── parseCompanyList.js       # MD 企业名单解析
 │   │   ├── companySearch.js          # 天眼查企业搜索
@@ -186,16 +183,6 @@ node cli.js query "宇树科技" --start-date 2026-01-01 --min-amount 50
 | 中标金额 | 原始金额文本 |
 | 发布日期 | YYYY-MM-DD 格式 |
 | 天眼查详情页链接 | 项目详情 URL |
-
-## 兼容模式（旧命令）
-
-旧版命令仍兼容可用：
-
-```bash
-npm run step1    # 等同于: node cli.js search
-npm run step2    # 等同于: node cli.js download
-npm run download # 等同于: node cli.js query
-```
 
 ## 注意事项
 
