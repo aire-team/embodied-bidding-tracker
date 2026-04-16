@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s -L \"https://clawhub.ai/airs-guest/embodied-bidding-tracker\")",
+      "WebFetch(domain:clawhub.ai)"
+    ]
+  }
+}

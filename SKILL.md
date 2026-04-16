@@ -1,16 +1,12 @@
 ---
-name: embodied-bidding-tracker
-description: |
-  具身智能行业招投标数据查询工具。基于浏览器自动化技术，
-  批量查询企业在天眼查平台的招投标/中标公示信息，导出结构化 CSV 报表。
-  支持模糊匹配、交互式查询、批量采集等多种模式。
-version: 2.0.0
-author: ""
-tags:
-  - data-collection
-  - browser-automation
-  - tianyancha
-  - procurement
+name: airs-embodied-bidding
+description: >
+  AIRS 具身智能 天眼查 招投标 数据查询工具。
+  查询企业在天眼查平台的招投标/中标公示信息，导出结构化 CSV 报表，基于浏览器自动化技术实现。
+  Keywords: AIRS, 具身智能, 天眼查, 招投标, embodied intelligence, bidding, tianyancha
+version: 1.0.6
+author: "airs"
+tags: ["airs", "AIRS", "具身智能", "天眼查", "招投标", "tianyancha", "embodied", "china", "bidding", "company"]
 ---
 
 ## When to Use
@@ -244,43 +240,3 @@ node cli.js query "宇树科技" --start-date 2026-01-01 --min-amount 50
   有记录企业: 28 / 161 家
   符合条件记录: 156 条
 ```
-
-## Directory Structure
-
-```
-embodied-bidding-tracker/
-├── SKILL.md                           # 本文件
-├── AGENTS.md                          # AI 助手指南
-├── assets/
-│   └── 具身智能中游企业数据库.md        # 默认企业名单
-├── scripts/                           # 主代码目录
-│   ├── cli.js                         # 统一 CLI 入口 ⭐
-│   ├── config.js                      # 统一配置管理 ⭐
-│   ├── browser.js                     # 浏览器连接管理
-│   ├── modules/
-│   │   ├── parseCompanyList.js        # 企业名单解析
-│   │   ├── companySearch.js           # 天眼查企业搜索
-│   │   └── biddingDownload.js         # 招投标记录下载
-│   └── utils/
-│       ├── excel.js                   # CSV 读写
-│       ├── logger.js                  # 日志管理
-│       └── retry.js                   # 重试机制
-└── data/                              # 运行时输出
-    ├── company_list.csv               # 企业搜索确认结果
-    ├── bidding_records.csv            # 招投标记录明细
-    └── step2_progress.json            # 断点续传进度
-```
-
-## Changelog
-
-### v2.0.0
-- ✅ 重构为统一 CLI 入口 (`cli.js`)
-- ✅ 新增统一配置管理 (`config.js`)
-- ✅ 新增交互式单企业查询 (`query` 命令)
-- ✅ 完善跨平台支持（macOS/Windows/Linux）
-- ✅ 优化模糊匹配算法
-- ✅ 完善错误处理和日志
-- ✅ 符合 Agent Skill 标准
-
-### v1.0.x
-- 基础功能实现（Step1 + Step2）
